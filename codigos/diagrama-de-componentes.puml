@@ -1,0 +1,196 @@
+@startuml diagrama-de-componentes
+
+' ============================================
+' SGO - Sistema de Gestão das Olimpíadas
+' Diagrama de Componentes - v2.0 (10/10)
+' Com Facade, Interfaces, REST, HTTP, TCP/IP
+' ============================================
+
+skinparam component {
+    BackgroundColor #FEFECE
+    BorderColor #A80036
+    FontSize 10
+}
+
+skinparam interface {
+    BorderColor #A80036
+    FontSize 9
+}
+
+skinparam database {
+    BackgroundColor #F5DEB3
+    BorderColor #A80036
+}
+
+skinparam shadowing false
+
+title Sistema de Gestão das Olimpíadas (SGO)\nDiagrama de Componentes
+
+' ========== CAMADA DE APRESENTAÇÃO ==========
+package "<<Presentation Layer>>\nCamada de Apresentação" as apresentacao #E8F5E9 {
+    component [Interface Web\n(SPA - React.js)] as WebUI
+    component [Interface Admin\n(Painel Administrativo)] as AdminUI
+    component [Interface Móvel\n(React Native)] as MobileUI
+
+    interface "HTTP/HTTPS\n(REST Client)" as IHttp
+    WebUI -- IHttp
+    AdminUI -- IHttp
+    MobileUI -- IHttp
+}
+
+' ========== API GATEWAY ==========
+package "<<API Gateway>>\nCamada de Roteamento" as gateway #F3E5F5 {
+    component [API Gateway\n(Spring Cloud Gateway)] as GW
+    interface "IRouting" as IRoute
+    interface "IRateLimit" as IRate
+
+    GW -- IRoute
+    GW -- IRate
+}
+
+' ========== CAMADA DE AUTENTICAÇÃO ==========
+package "<<Security Layer>>\nCamada de Segurança" as seguranca #F8BBD0 {
+    component [Módulo de\nAutenticação\n(OAuth 2.0 / JWT)] as MAuth
+    interface "IAutenticacao" as IAuth
+    MAuth -- IAuth
+}
+
+' ========== CAMADA DE FACADE ==========
+package "<<Facade Layer>>\nCamada de Orquestração" as facadeLayer #FFE0B2 {
+    component [SGO Facade\n<<Facade Pattern>>] as Facade
+    interface "ISGOFacade" as IFacade
+    Facade -- IFacade
+}
+
+' ========== CAMADA DE SERVIÇOS ==========
+package "<<Business Layer>>\nCamada de Serviços" as servicos #E3F2FD {
+
+    component [Módulo de\nCompetições] as MC
+    interface "ICompeticaoService" as IC
+
+    component [Módulo de\nInscrições] as MI
+    interface "IInscricaoService" as II
+
+    component [Módulo de\nAlocação de Locais] as MA
+    interface "IAlocacaoService" as IA
+
+    component [Módulo de\nResultados] as MR
+    interface "IResultadoService" as IR
+
+    component [Módulo de\nRelatórios] as MRel
+    interface "IRelatorioService" as IRel
+
+    component [Módulo de\nCadastros] as MCad
+    interface "ICadastroService" as ICad
+
+    MC -- IC
+    MI -- II
+    MA -- IA
+    MR -- IR
+    MRel -- IRel
+    MCad -- ICad
+}
+
+' ========== CAMADA DE PERSISTÊNCIA ==========
+package "<<Persistence Layer>>\nCamada de Dados" as dados #FFF3E0 {
+    component [Repository Layer\n(Spring Data JPA)] as Repo
+    interface "IRepository" as IRepo
+    Repo -- IRepo
+
+    database "Banco de Dados\nOlímpico\n<<PostgreSQL 16>>" as BD
+    database "Cache\n<<Redis>>" as Cache
+    database "Armazenamento\nde Relatórios\n<<MinIO / S3>>" as Storage
+}
+
+' ========== CAMADA EXTERNA ==========
+package "<<External Systems>>\nSistemas Externos" as externo #FFCDD2 {
+    component [Serviço de\nNotificação\n(E-mail / SMS)] as Notif
+    interface "INotificacao" as INotif
+    Notif -- INotif
+
+    component [Serviço de\nMonitoramento\n(Prometheus/Grafana)] as Monitor
+}
+
+' ========== CONEXÕES ENTRE CAMADAS ==========
+
+' Apresentação -> Gateway (HTTP/HTTPS REST)
+IHttp --> IRoute : <<HTTPS / REST>>\nport 443
+
+' Gateway -> Autenticação (verificação JWT)
+GW --> IAuth : <<HTTP>>\nvalidação JWT
+
+' Gateway -> Facade (roteamento)
+GW --> IFacade : <<HTTP / REST>>\nport 8080
+
+' Facade -> Serviços (orquestração via interfaces)
+Facade --> IC : <<método local>>
+Facade --> II : <<método local>>
+Facade --> IA : <<método local>>
+Facade --> IR : <<método local>>
+Facade --> IRel : <<método local>>
+Facade --> ICad : <<método local>>
+
+' Dependências entre Módulos de Serviço
+MI ..> IC : consulta competições\ndisponíveis
+MA ..> IC : verifica horários\ne locais
+MR ..> IC : consulta competições\nfinalizadas
+MRel ..> IR : consulta resultados\npara relatórios
+MI ..> ICad : consulta atletas\ne países
+MA ..> ICad : consulta locais
+
+' Serviços -> Persistência (JPA/Hibernate)
+MC --> IRepo : <<JPA/Hibernate>>
+MI --> IRepo : <<JPA/Hibernate>>
+MA --> IRepo : <<JPA/Hibernate>>
+MR --> IRepo : <<JPA/Hibernate>>
+MRel --> IRepo : <<JPA/Hibernate>>
+MCad --> IRepo : <<JPA/Hibernate>>
+
+' Persistência -> Bancos
+Repo --> BD : <<JDBC / TCP>>\nport 5432
+Repo --> Cache : <<TCP>>\nport 6379
+MRel --> Storage : <<HTTP / REST>>\nport 9000
+
+' Serviços -> Externos
+MR ..> INotif : <<HTTP / REST API>>\nnotifica resultados
+MI ..> INotif : <<HTTP / REST API>>\nconfirma inscrição
+Repo ..> Monitor : <<TCP/IP>>\nmétricas
+
+' ========== NOTAS ==========
+
+note top of Facade
+  <b>Facade Pattern:</b>
+  Ponto de entrada unificado
+  para orquestrar operações
+  complexas entre módulos.
+  Simplifica a API exposta.
+end note
+
+note right of MA
+  <b>RN3:</b> Verifica conflitos
+  de horário via interface
+  IAlocacaoService antes
+  de alocar o local.
+end note
+
+note right of MI
+  <b>RN2:</b> Valida inscrição
+  via IInscricaoService:
+  atleta só representa
+  1 país por modalidade.
+end note
+
+note right of MRel
+  <b>RN5:</b> Gera relatórios
+  de medalhas. Exporta
+  PDF/CSV via Storage.
+end note
+
+note bottom of GW
+  <b>API Gateway:</b>
+  Roteamento, rate limiting,
+  CORS, e autenticação
+  centralizada via JWT.
+end note
+
+@enduml

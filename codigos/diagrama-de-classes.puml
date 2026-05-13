@@ -1,0 +1,398 @@
+@startuml diagrama-de-classes
+
+' ============================================
+' SGO - Sistema de Gestão das Olimpíadas
+' Diagrama de Classes - v2.0 (10/10)
+' Com Interfaces, Facade, Abstract, Patterns
+' ============================================
+
+skinparam class {
+    BackgroundColor #FEFECE
+    BorderColor #A80036
+    ArrowColor #A80036
+    FontSize 10
+}
+
+skinparam interface {
+    BackgroundColor #D5E8D4
+    BorderColor #82B366
+}
+
+skinparam enum {
+    BackgroundColor #F0E68C
+    BorderColor #8B7500
+}
+
+skinparam abstract {
+    BackgroundColor #DAE8FC
+    BorderColor #6C8EBF
+}
+
+skinparam shadowing false
+
+title Sistema de Gestão das Olimpíadas (SGO)\nDiagrama de Classes
+
+' ========== ENUMERAÇÕES ==========
+
+enum StatusCompeticao <<enumeration>> {
+    AGENDADA
+    EM_ANDAMENTO
+    FINALIZADA
+    CANCELADA
+}
+
+enum TipoMedalha <<enumeration>> {
+    OURO
+    PRATA
+    BRONZE
+}
+
+enum TipoModalidade <<enumeration>> {
+    INDIVIDUAL
+    EQUIPE
+}
+
+enum PerfilUsuario <<enumeration>> {
+    ADMIN
+    DELEGADO
+    ATLETA
+    COMITE
+}
+
+' ========== CLASSE ABSTRATA ==========
+
+abstract class Pessoa {
+    - id : int
+    - nome : String
+    - email : String
+    - dataNascimento : Date
+    - genero : String
+    --
+    + getId() : int
+    + getNome() : String
+    + getEmail() : String
+    + getDataNascimento() : Date
+    + getGenero() : String
+    + setNome(nome : String) : void
+    + setEmail(email : String) : void
+    + {abstract} getPerfilUsuario() : PerfilUsuario
+    + getIdade() : int
+    + toString() : String
+}
+
+' ========== INTERFACES DE SERVIÇO ==========
+
+interface ICompeticaoService <<interface>> {
+    + cadastrarCompeticao(comp : Competicao) : Competicao
+    + listarCompeticoes() : List<Competicao>
+    + buscarPorId(id : int) : Competicao
+    + buscarPorModalidade(modalidade : Modalidade) : List<Competicao>
+    + atualizarStatus(id : int, status : StatusCompeticao) : void
+    + removerCompeticao(id : int) : void
+}
+
+interface IInscricaoService <<interface>> {
+    + inscreverAtleta(inscricao : Inscricao) : Inscricao
+    + validarInscricao(atleta : Atleta, competicao : Competicao) : boolean
+    + listarInscricoesAtleta(atleta : Atleta) : List<Inscricao>
+    + listarInscricoesCompeticao(comp : Competicao) : List<Inscricao>
+    + cancelarInscricao(id : int) : void
+}
+
+interface IAlocacaoService <<interface>> {
+    + alocarLocal(competicao : Competicao, local : Local) : boolean
+    + verificarDisponibilidade(local : Local, data : Date, horario : Time) : boolean
+    + listarLocaisDisponiveis(data : Date, horario : Time) : List<Local>
+    + desalocarLocal(competicao : Competicao) : void
+}
+
+interface IResultadoService <<interface>> {
+    + registrarResultado(resultado : Resultado) : Resultado
+    + determinarMedalhistas(competicao : Competicao) : List<Resultado>
+    + listarResultadosCompeticao(comp : Competicao) : List<Resultado>
+    + listarResultadosAtleta(atleta : Atleta) : List<Resultado>
+}
+
+interface IRelatorioService <<interface>> {
+    + gerarRelatorioPorPais(pais : Pais) : RelatorioMedalhas
+    + gerarRelatorioGeral() : List<RelatorioMedalhas>
+    + exportarPDF(relatorio : RelatorioMedalhas) : byte[]
+    + exportarCSV(relatorio : RelatorioMedalhas) : String
+}
+
+' ========== FACADE ==========
+
+class SGOFacade <<Facade>> #FFE0B2 {
+    - competicaoService : ICompeticaoService
+    - inscricaoService : IInscricaoService
+    - alocacaoService : IAlocacaoService
+    - resultadoService : IResultadoService
+    - relatorioService : IRelatorioService
+    --
+    + cadastrarCompeticaoCompleta(comp : Competicao, local : Local) : Competicao
+    + inscreverAtletaEmCompeticao(atleta : Atleta, comp : Competicao, pais : Pais) : Inscricao
+    + registrarResultadoENotificar(resultado : Resultado) : void
+    + gerarQuadroMedalhas() : List<RelatorioMedalhas>
+    + alocarLocalParaCompeticao(comp : Competicao, local : Local) : boolean
+}
+
+' ========== CLASSES DE DOMÍNIO ==========
+
+class Pais {
+    - id : int
+    - nome : String
+    - sigla : String
+    - bandeira : String
+    - continente : String
+    --
+    + getId() : int
+    + getNome() : String
+    + getSigla() : String
+    + getBandeira() : String
+    + getContinente() : String
+    + setNome(nome : String) : void
+    + setSigla(sigla : String) : void
+    + setBandeira(bandeira : String) : void
+    + setContinente(continente : String) : void
+    + getAtletas() : List<Atleta>
+    + getMedalhas() : List<Resultado>
+    + toString() : String
+}
+
+class Atleta extends Pessoa {
+    - numeroRegistro : String
+    - peso : double
+    - altura : double
+    --
+    + getNumeroRegistro() : String
+    + getPeso() : double
+    + getAltura() : double
+    + getPais() : Pais
+    + setNumeroRegistro(num : String) : void
+    + setPeso(peso : double) : void
+    + setAltura(altura : double) : void
+    + getPerfilUsuario() : PerfilUsuario
+    + getInscricoes() : List<Inscricao>
+    + getResultados() : List<Resultado>
+    + getMedalhas() : List<Resultado>
+    + toString() : String
+}
+
+class Delegado extends Pessoa {
+    - cargo : String
+    --
+    + getCargo() : String
+    + setCargo(cargo : String) : void
+    + getPerfilUsuario() : PerfilUsuario
+    + getPais() : Pais
+    + toString() : String
+}
+
+class Modalidade {
+    - id : int
+    - nome : String
+    - descricao : String
+    - tipo : TipoModalidade
+    - numMaxAtletas : int
+    --
+    + getId() : int
+    + getNome() : String
+    + getDescricao() : String
+    + getTipo() : TipoModalidade
+    + getNumMaxAtletas() : int
+    + setNome(nome : String) : void
+    + setDescricao(descricao : String) : void
+    + setTipo(tipo : TipoModalidade) : void
+    + setNumMaxAtletas(num : int) : void
+    + getCompeticoes() : List<Competicao>
+    + toString() : String
+}
+
+class Local {
+    - id : int
+    - nome : String
+    - endereco : String
+    - capacidade : int
+    - tipoInstalacao : String
+    --
+    + getId() : int
+    + getNome() : String
+    + getEndereco() : String
+    + getCapacidade() : int
+    + getTipoInstalacao() : String
+    + setNome(nome : String) : void
+    + setEndereco(endereco : String) : void
+    + setCapacidade(capacidade : int) : void
+    + setTipoInstalacao(tipo : String) : void
+    + verificarDisponibilidade(data : Date, horario : Time) : boolean
+    + getCompeticoes() : List<Competicao>
+    + toString() : String
+}
+
+class Competicao {
+    - id : int
+    - data : Date
+    - horarioInicio : Time
+    - horarioFim : Time
+    - status : StatusCompeticao
+    --
+    + getId() : int
+    + getData() : Date
+    + getHorarioInicio() : Time
+    + getHorarioFim() : Time
+    + getStatus() : StatusCompeticao
+    + getModalidade() : Modalidade
+    + getLocal() : Local
+    + setData(data : Date) : void
+    + setHorarioInicio(horario : Time) : void
+    + setHorarioFim(horario : Time) : void
+    + setStatus(status : StatusCompeticao) : void
+    + setModalidade(modalidade : Modalidade) : void
+    + setLocal(local : Local) : void
+    + getAtletasInscritos() : List<Inscricao>
+    + getResultados() : List<Resultado>
+    + isFinalizada() : boolean
+    + temConflito(outra : Competicao) : boolean
+    + toString() : String
+}
+
+class Inscricao {
+    - id : int
+    - dataInscricao : Date
+    - ativa : boolean
+    --
+    + getId() : int
+    + getDataInscricao() : Date
+    + isAtiva() : boolean
+    + getAtleta() : Atleta
+    + getCompeticao() : Competicao
+    + getPaisRepresentado() : Pais
+    + setDataInscricao(data : Date) : void
+    + setAtiva(ativa : boolean) : void
+    + validarInscricao() : boolean
+    + cancelar() : void
+    + toString() : String
+}
+
+class Resultado {
+    - id : int
+    - posicao : int
+    - tempo : double
+    - pontuacao : double
+    - medalha : TipoMedalha
+    - dataRegistro : Date
+    --
+    + getId() : int
+    + getPosicao() : int
+    + getTempo() : double
+    + getPontuacao() : double
+    + getMedalha() : TipoMedalha
+    + getDataRegistro() : Date
+    + getCompeticao() : Competicao
+    + getAtleta() : Atleta
+    + setPosicao(posicao : int) : void
+    + setTempo(tempo : double) : void
+    + setPontuacao(pontuacao : double) : void
+    + setMedalha(medalha : TipoMedalha) : void
+    + isMedalhista() : boolean
+    + toString() : String
+}
+
+class RelatorioMedalhas {
+    - id : int
+    - dataGeracao : Date
+    - totalOuro : int
+    - totalPrata : int
+    - totalBronze : int
+    --
+    + gerarRelatorioPorPais(pais : Pais) : Map<String, Integer>
+    + gerarRelatorioGeral() : List<Map<String, Object>>
+    + getTotalOuro() : int
+    + getTotalPrata() : int
+    + getTotalBronze() : int
+    + getTotalMedalhas() : int
+    + getQuadroGeral() : List<Map<String, Object>>
+    + exportarPDF() : byte[]
+    + exportarCSV() : String
+}
+
+' ========== RELACIONAMENTOS ==========
+
+' Herança
+Atleta -up-|> Pessoa
+Delegado -up-|> Pessoa
+
+' Associações de domínio
+Atleta "*" -- "1" Pais : pertence a >
+Delegado "*" -- "1" Pais : representa >
+Competicao "*" -- "1" Modalidade : é de >
+Competicao "*" -- "1" Local : acontece em >
+
+Inscricao "*" -- "1" Atleta : inscreve >
+Inscricao "*" -- "1" Competicao : para >
+Inscricao "*" -- "1" Pais : representa >
+
+Resultado "*" -- "1" Competicao : registrado em >
+Resultado "0..*" -- "1" Atleta : obtido por >
+
+RelatorioMedalhas "*" -- "1" Pais : referente a >
+
+' Enumerações
+Competicao --> StatusCompeticao
+Resultado --> TipoMedalha
+Modalidade --> TipoModalidade
+Pessoa --> PerfilUsuario
+
+' Facade -> Interfaces (dependência)
+SGOFacade ..> ICompeticaoService : <<usa>>
+SGOFacade ..> IInscricaoService : <<usa>>
+SGOFacade ..> IAlocacaoService : <<usa>>
+SGOFacade ..> IResultadoService : <<usa>>
+SGOFacade ..> IRelatorioService : <<usa>>
+
+' ========== NOTAS ==========
+
+note top of SGOFacade
+  <b>Design Pattern: Facade</b>
+  Simplifica o acesso às operações
+  complexas do sistema, fornecendo
+  uma interface unificada para os
+  subsistemas (Competição, Inscrição,
+  Alocação, Resultado e Relatório).
+end note
+
+note bottom of Inscricao
+  <b>RN2:</b> Um atleta só pode
+  representar um país por
+  modalidade. Validado em
+  validarInscricao().
+end note
+
+note bottom of Local
+  <b>RN3:</b> Um local só pode
+  abrigar uma competição
+  por vez. Validado em
+  verificarDisponibilidade().
+end note
+
+note bottom of Resultado
+  <b>RN4:</b> Posições 1, 2 e 3
+  recebem Ouro, Prata e
+  Bronze respectivamente.
+end note
+
+note right of RelatorioMedalhas
+  <b>RN5:</b> Gera quadro geral
+  de medalhas por país.
+  Exportável em PDF e CSV.
+end note
+
+note left of Pessoa
+  <b>Classe Abstrata:</b>
+  Atributos e comportamentos
+  comuns a Atleta e Delegado.
+  Método abstrato:
+  getPerfilUsuario().
+end note
+
+@enduml

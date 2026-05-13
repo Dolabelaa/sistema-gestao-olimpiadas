@@ -1,0 +1,283 @@
+@startuml diagrama-de-implantacao
+
+' ============================================
+' SGO - Sistema de Gestão das Olimpíadas
+' Diagrama de Implantação - v2.0 (10/10)
+' Com protocolos REST, HTTP, TCP/IP, JDBC, SSL
+' ============================================
+
+skinparam node {
+    BackgroundColor #FEFECE
+    BorderColor #A80036
+    FontSize 11
+}
+
+skinparam component {
+    FontSize 9
+}
+
+skinparam database {
+    BackgroundColor #F5DEB3
+    BorderColor #A80036
+}
+
+skinparam cloud {
+    BackgroundColor #E3F2FD
+    BorderColor #1565C0
+}
+
+skinparam shadowing false
+
+title Sistema de Gestão das Olimpíadas (SGO)\nDiagrama de Implantação
+
+' ========== DISPOSITIVOS CLIENTES ==========
+
+node "<<device>>\nDesktop do Administrador" as desktop {
+    node "<<executionEnvironment>>\nNavegador Web\n(Chrome / Edge)" as browser {
+        component [SPA React.js\n(Frontend)] as webapp
+    }
+}
+
+node "<<device>>\nSmartphone / Tablet\n(Atleta / Delegado)" as mobile {
+    node "<<executionEnvironment>>\nApp Container" as appcontainer {
+        component [App Móvel\n(React Native)] as mobileapp
+    }
+}
+
+node "<<device>>\nTerminal do Comitê\n(Kiosk)" as kiosk {
+    node "<<executionEnvironment>>\nNavegador Web" as kioskbrowser {
+        component [Interface\nQuadro de Medalhas] as kioskapp
+    }
+}
+
+' ========== REDE ==========
+
+cloud "<<network>>\nInternet\n(TCP/IP)" as internet {
+    component [DNS\n(Route 53)] as dns
+    component [CDN\n(CloudFront)] as cdn
+}
+
+' ========== FIREWALL E BALANCEAMENTO ==========
+
+node "<<infrastructure>>\nFirewall / WAF\n(Web Application Firewall)" as waf {
+    component [WAF Rules\n(OWASP)] as wafrules
+    component [SSL/TLS\nTermination] as ssl
+}
+
+node "<<infrastructure>>\nLoad Balancer\n(HAProxy / Nginx)" as lb {
+    component [Balanceador\nde Carga\n(Round Robin)] as balancer
+    component [Health Check\nMonitor] as hc
+}
+
+' ========== SERVIDOR WEB ==========
+
+node "<<server>>\nServidor Web\n(Nginx)" as webserver {
+    node "<<executionEnvironment>>\nHTTP Server (port 80/443)" as httpenv {
+        component [Frontend Build\n(HTML/CSS/JS)] as frontend
+        component [Assets Estáticos\n(Imagens/Fontes)] as assets
+        component [Reverse Proxy\nConfig] as proxy
+    }
+}
+
+' ========== API GATEWAY ==========
+
+node "<<server>>\nAPI Gateway\n(Spring Cloud Gateway)" as gwserver {
+    node "<<executionEnvironment>>\nJava Runtime (JDK 17)" as gwjre {
+        component [API Gateway] as gw
+        component [Rate Limiter] as ratelimit
+        component [JWT Validator] as jwtval
+        component [CORS Filter] as cors
+    }
+}
+
+' ========== SERVIDORES DE APLICAÇÃO ==========
+
+node "<<server>>\nServidor de Aplicação 1\n(Tomcat - Principal)" as appserver1 {
+    node "<<executionEnvironment>>\nJava Runtime (JDK 17)\nSpring Boot 3.x" as jre1 {
+        component [SGO Facade\n<<Facade>>] as facade1
+        component [REST API\nControllers] as api1
+        component [Módulo de Competições\n<<ICompeticaoService>>] as mc1
+        component [Módulo de Inscrições\n<<IInscricaoService>>] as mi1
+        component [Módulo de Alocação\n<<IAlocacaoService>>] as ma1
+        component [Módulo de Resultados\n<<IResultadoService>>] as mr1
+        component [Módulo de Relatórios\n<<IRelatorioService>>] as mrel1
+        component [Security Module\n(Spring Security + JWT)] as sec1
+        component [Repository Layer\n(Spring Data JPA)] as repo1
+    }
+}
+
+node "<<server>>\nServidor de Aplicação 2\n(Tomcat - Réplica)" as appserver2 {
+    node "<<executionEnvironment>>\nJava Runtime (JDK 17)\nSpring Boot 3.x" as jre2 {
+        component [SGO Facade\n<<Facade>>] as facade2
+        component [REST API\nControllers (Réplica)] as api2
+        component [Repository Layer\n(Spring Data JPA)] as repo2
+    }
+}
+
+' ========== SERVIDORES DE BANCO DE DADOS ==========
+
+node "<<server>>\nServidor de BD Principal\n(Linux Ubuntu 22.04)" as dbserver {
+    node "<<executionEnvironment>>\nPostgreSQL 16\n(port 5432)" as pgenv {
+        database "BD SGO\n(Dados Principais)\n<<Master>>" as db
+    }
+}
+
+node "<<server>>\nServidor de BD Réplica\n(Linux Ubuntu 22.04)" as dbreplica {
+    node "<<executionEnvironment>>\nPostgreSQL 16\n(Streaming Replication)" as pgenv2 {
+        database "BD SGO Réplica\n(Read-Only)\n<<Slave>>" as dbrep
+    }
+}
+
+' ========== CACHE E ARMAZENAMENTO ==========
+
+node "<<server>>\nServidor de Cache\n(Redis Cluster)" as cacheserver {
+    node "<<executionEnvironment>>\nRedis 7.x (port 6379)" as redisenv {
+        database "Cache de Sessões\ne Relatórios" as cache
+    }
+}
+
+node "<<server>>\nServidor de Armazenamento\n(MinIO / S3)" as storageserver {
+    node "<<executionEnvironment>>\nMinIO (port 9000)" as minioenv {
+        database "Storage de\nRelatórios\n(PDF/CSV)" as storage
+    }
+}
+
+' ========== MONITORAMENTO ==========
+
+node "<<server>>\nServidor de Monitoramento" as monserver {
+    node "<<executionEnvironment>>\nDocker Containers" as dockermon {
+        component [Prometheus\n(Métricas)] as prometheus
+        component [Grafana\n(Dashboards)] as grafana
+        component [ELK Stack\n(Logs)] as elk
+    }
+}
+
+' ========== SERVIÇO DE NOTIFICAÇÃO ==========
+
+cloud "<<external>>\nServiço de Notificação" as notifcloud {
+    component [SMTP Server\n(E-mail)] as smtp
+    component [SMS Gateway\n(Twilio)] as sms
+}
+
+' ========== CONEXÕES ==========
+
+' Clientes -> Internet
+webapp -down-> dns : <<HTTPS / TCP/IP>>\nport 443
+mobileapp -down-> dns : <<HTTPS / TCP/IP>>\nport 443
+kioskapp -down-> dns : <<HTTPS / TCP/IP>>\nport 443
+
+' Internet -> Firewall
+dns -down-> cdn : <<HTTP>>
+cdn -down-> ssl : <<HTTPS>>\nSSL/TLS
+
+' Firewall -> Load Balancer
+ssl -down-> balancer : <<HTTP>>\nport 80
+
+' Load Balancer -> Servidor Web (conteúdo estático)
+balancer -down-> frontend : <<HTTP>>\nport 80
+
+' Load Balancer -> API Gateway (requisições API)
+balancer -down-> gw : <<HTTP / REST>>\nport 8080
+
+' Servidor Web -> API Gateway (proxy reverso)
+proxy -down-> gw : <<HTTP / REST>>\nport 8080
+
+' API Gateway -> Servidores de Aplicação
+gw -down-> api1 : <<HTTP / REST / JSON>>\nport 8081
+gw -down-> api2 : <<HTTP / REST / JSON>>\nport 8082
+
+' API Controllers -> Facade
+api1 -down-> facade1 : <<método local>>
+
+' Facade -> Módulos
+facade1 --> mc1
+facade1 --> mi1
+facade1 --> ma1
+facade1 --> mr1
+facade1 --> mrel1
+
+' Módulos -> Repository
+mc1 --> repo1
+mi1 --> repo1
+ma1 --> repo1
+mr1 --> repo1
+mrel1 --> repo1
+
+' Servidores de Aplicação -> BD
+repo1 -down-> db : <<JDBC / TCP>>\nport 5432
+repo2 -down-> dbrep : <<JDBC / TCP>>\nport 5432
+
+' Replicação BD
+db -right-> dbrep : <<Streaming\nReplication>>\nport 5432
+
+' Servidores de Aplicação -> Cache
+repo1 -right-> cache : <<TCP>>\nport 6379
+repo2 -left-> cache : <<TCP>>\nport 6379
+
+' Servidores de Aplicação -> Storage
+mrel1 -down-> storage : <<HTTP / REST>>\nport 9000
+
+' Servidores de Aplicação -> Notificação
+mr1 --> smtp : <<SMTP / TCP>>\nport 587
+mi1 --> sms : <<HTTPS / REST API>>
+
+' Monitoramento
+api1 ..> prometheus : <<TCP/IP>>\nmétricas (port 9090)
+db ..> prometheus : <<TCP/IP>>\nmétricas
+cache ..> prometheus : <<TCP/IP>>\nmétricas
+prometheus --> grafana : <<HTTP>>\nport 3000
+api1 ..> elk : <<TCP/IP>>\nlogs (port 5044)
+
+' ========== NOTAS ==========
+
+note right of appserver1
+  <b>Servidor Principal:</b>
+  Contém todos os módulos do
+  SGO com Facade Pattern.
+  Escalável horizontalmente.
+  Comunicação interna via
+  interfaces de serviço.
+end note
+
+note bottom of dbserver
+  <b>Banco de Dados Master:</b>
+  Armazena todas as entidades:
+  Competição, Atleta, Local,
+  Inscrição, Resultado, País,
+  Modalidade. Conexão via
+  JDBC sobre TCP (port 5432).
+end note
+
+note right of cacheserver
+  <b>Cache Redis:</b>
+  - Sessões JWT (TCP 6379)
+  - Relatórios frequentes
+  - Dados de consulta rápida
+end note
+
+note bottom of gwserver
+  <b>API Gateway:</b>
+  Ponto de entrada único.
+  Rate Limiting, JWT Validation,
+  CORS, roteamento para
+  servidores de aplicação
+  via HTTP/REST.
+end note
+
+note right of monserver
+  <b>Monitoramento:</b>
+  Prometheus coleta métricas
+  via TCP/IP. Grafana exibe
+  dashboards. ELK centraliza
+  logs de todos os serviços.
+end note
+
+note top of lb
+  <b>Load Balancer:</b>
+  Distribui requisições via
+  Round Robin. Health Check
+  monitora disponibilidade.
+  Protocolo HTTP (port 80).
+end note
+
+@enduml

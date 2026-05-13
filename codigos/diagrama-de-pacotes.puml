@@ -1,0 +1,201 @@
+@startuml diagrama-de-pacotes
+
+' ============================================
+' SGO - Sistema de Gestão das Olimpíadas
+' Diagrama de Pacotes - v2.0 (10/10)
+' Com Facade, Interface, DTO, Config, Exception
+' ============================================
+
+skinparam package {
+    BackgroundColor #FEFECE
+    BorderColor #A80036
+    FontSize 13
+    Style rectangle
+}
+
+skinparam shadowing false
+
+title Sistema de Gestão das Olimpíadas (SGO)\nDiagrama de Pacotes
+
+package "br.com.sgo" as root {
+
+    package "presentation" as presentation <<Presentation Layer>> #E8F5E9 {
+        [CompeticaoView]
+        [AtletaView]
+        [InscricaoView]
+        [AlocacaoView]
+        [ResultadoView]
+        [RelatorioView]
+        [LoginView]
+    }
+
+    package "controller" as controller <<REST Controller>> #E3F2FD {
+        [CompeticaoController]
+        [AtletaController]
+        [InscricaoController]
+        [LocalController]
+        [ResultadoController]
+        [RelatorioController]
+        [AuthController]
+    }
+
+    package "dto" as dto <<Data Transfer Object>> #E0F7FA {
+        [CompeticaoDTO]
+        [AtletaDTO]
+        [InscricaoDTO]
+        [ResultadoDTO]
+        [RelatorioDTO]
+        [LoginDTO]
+        [ResponseDTO]
+    }
+
+    package "facade" as facade <<Facade Pattern>> #FFE0B2 {
+        [SGOFacade]
+    }
+
+    package "service.interfaces" as serviceInterfaces <<Service Contracts>> #FFFDE7 {
+        [ICompeticaoService]
+        [IInscricaoService]
+        [IAlocacaoService]
+        [IResultadoService]
+        [IRelatorioService]
+    }
+
+    package "service.impl" as serviceImpl <<Business Logic>> #FFF3E0 {
+        [CompeticaoServiceImpl]
+        [InscricaoServiceImpl]
+        [AlocacaoServiceImpl]
+        [ResultadoServiceImpl]
+        [RelatorioServiceImpl]
+    }
+
+    package "model" as model <<Domain Entities>> #FCE4EC {
+        [Pessoa]
+        [Atleta]
+        [Delegado]
+        [Competicao]
+        [Local]
+        [Inscricao]
+        [Resultado]
+        [Pais]
+        [Modalidade]
+        [RelatorioMedalhas]
+    }
+
+    package "model.enums" as enums <<Enumerations>> #FFF9C4 {
+        [StatusCompeticao]
+        [TipoMedalha]
+        [TipoModalidade]
+        [PerfilUsuario]
+    }
+
+    package "repository" as repository <<Data Access>> #F3E5F5 {
+        [CompeticaoRepository]
+        [AtletaRepository]
+        [LocalRepository]
+        [InscricaoRepository]
+        [ResultadoRepository]
+        [PaisRepository]
+        [ModalidadeRepository]
+        [DelegadoRepository]
+    }
+
+    package "config" as config <<Configuration>> #ECEFF1 {
+        [DatabaseConfig]
+        [SecurityConfig]
+        [CorsConfig]
+        [SwaggerConfig]
+    }
+
+    package "exception" as exception <<Exception Handling>> #FFCDD2 {
+        [ConflitHorarioException]
+        [InscricaoInvalidaException]
+        [RecursoNaoEncontradoException]
+        [GlobalExceptionHandler]
+    }
+
+    package "util" as util <<Utility>> #E8EAF6 {
+        [ValidadorHorario]
+        [GeradorRelatorio]
+        [ConversorData]
+        [JwtTokenUtil]
+    }
+
+    package "security" as security <<Security Layer>> #F8BBD0 {
+        [AuthService]
+        [JwtFilter]
+        [UserDetailsImpl]
+    }
+}
+
+' --- Dependências entre Pacotes ---
+presentation ..> controller : <<HTTP Request>>
+controller ..> dto : <<converte>>
+controller ..> facade : <<delega>>
+facade ..> serviceInterfaces : <<orquestra>>
+serviceImpl .up.|> serviceInterfaces : <<implementa>>
+serviceImpl ..> model : <<manipula>>
+serviceImpl ..> repository : <<persiste>>
+serviceImpl ..> exception : <<lança>>
+serviceImpl ..> util : <<auxilia>>
+repository ..> model : <<mapeia ORM>>
+model ..> enums : <<usa>>
+controller ..> security : <<autentica>>
+security ..> util : <<valida JWT>>
+config ..> repository : <<configura datasource>>
+config ..> security : <<configura auth>>
+dto ..> model : <<mapeia>>
+
+' --- Notas ---
+note top of presentation
+  <b>Apresentação:</b>
+  Interfaces de usuário
+  (telas, formulários,
+  Single Page Application)
+end note
+
+note top of controller
+  <b>REST Controllers:</b>
+  Recebe requisições HTTP
+  (GET, POST, PUT, DELETE)
+  e retorna JSON/ResponseDTO
+end note
+
+note right of facade
+  <b>Facade Pattern:</b>
+  Interface unificada que
+  orquestra os serviços,
+  simplificando chamadas
+  complexas do sistema.
+end note
+
+note right of serviceInterfaces
+  <b>Contratos:</b>
+  Interfaces que definem
+  os métodos de negócio.
+  Implementações em
+  service.impl.
+end note
+
+note bottom of model
+  <b>Domínio:</b>
+  Entidades JPA com
+  herança (Pessoa -> Atleta,
+  Delegado) e enums.
+end note
+
+note bottom of repository
+  <b>Persistência:</b>
+  Interfaces Spring Data JPA.
+  Acesso ao BD via ORM
+  (Hibernate/JPA).
+end note
+
+note bottom of exception
+  <b>Exceções:</b>
+  Tratamento centralizado
+  de erros com
+  GlobalExceptionHandler.
+end note
+
+@enduml

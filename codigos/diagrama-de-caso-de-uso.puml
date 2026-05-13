@@ -1,0 +1,153 @@
+@startuml diagrama-de-caso-de-uso
+
+' ============================================
+' SGO - Sistema de Gestão das Olimpíadas
+' Diagrama de Caso de Uso - v2.0 (10/10)
+' ============================================
+
+left to right direction
+skinparam actorStyle awesome
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+skinparam usecase {
+    BackgroundColor #FEFECE
+    BorderColor #A80036
+    ArrowColor #A80036
+    FontSize 12
+}
+
+skinparam actor {
+    FontSize 13
+    BorderColor #A80036
+}
+
+title Sistema de Gestão das Olimpíadas (SGO)\nDiagrama de Caso de Uso
+
+' --- Atores Primários ---
+actor "Administrador\ndo Sistema" as Admin #LightBlue
+actor "Atleta" as Atleta #LightGreen
+actor "Comitê\nOlímpico" as Comite #Gold
+actor "Delegado\ndo País" as Delegado #Orange
+
+' --- Atores Secundários ---
+actor "Sistema de\nNotificação\n(E-mail/SMS)" as SisNotif #LightCoral
+actor "Sistema de\nAutenticação\n(OAuth 2.0)" as SisAuth #Plum
+
+' --- Generalização de Atores ---
+Admin --|> Comite
+
+' --- Sistema ---
+rectangle "Sistema de Gestão das Olimpíadas (SGO)" {
+
+    ' --- Casos de Uso de Cadastro ---
+    usecase "UC01 - Cadastrar\nModalidade" as UC01
+    usecase "UC02 - Cadastrar\nLocal" as UC02
+    usecase "UC03 - Cadastrar\nPaís" as UC03
+    usecase "UC04 - Cadastrar\nCompetição" as UC04
+    usecase "UC05 - Cadastrar\nAtleta" as UC05
+
+    ' --- Casos de Uso de Operação ---
+    usecase "UC06 - Inscrever Atleta\nem Competição" as UC06
+    usecase "UC07 - Alocar Local\npara Competição" as UC07
+    usecase "UC08 - Registrar\nResultados" as UC08
+
+    ' --- Casos de Uso de Consulta/Relatório ---
+    usecase "UC09 - Gerar Relatório\nde Medalhas" as UC09
+    usecase "UC10 - Consultar\nCompetições" as UC10
+    usecase "UC11 - Consultar\nResultados" as UC11
+    usecase "UC12 - Exportar\nRelatório (PDF/CSV)" as UC12
+
+    ' --- Casos de Uso Incluídos ---
+    usecase "UC13 - Verificar Conflito\nde Horário no Local" as UC13
+    usecase "UC14 - Validar Inscrição\n(País único por Modalidade)" as UC14
+    usecase "UC15 - Determinar\nMedalhistas (1º, 2º, 3º)" as UC15
+    usecase "UC16 - Autenticar\nUsuário" as UC16
+
+    ' --- Casos de Uso Estendidos ---
+    usecase "UC17 - Notificar Atleta\n(Inscrição Confirmada)" as UC17
+    usecase "UC18 - Notificar\nResultados Publicados" as UC18
+}
+
+' --- Associações do Administrador ---
+Admin --> UC01
+Admin --> UC02
+Admin --> UC03
+Admin --> UC04
+Admin --> UC05
+Admin --> UC06
+Admin --> UC07
+Admin --> UC08
+Admin --> UC09
+Admin --> UC12
+
+' --- Associações do Atleta ---
+Atleta --> UC06
+Atleta --> UC10
+Atleta --> UC11
+
+' --- Associações do Delegado ---
+Delegado --> UC05
+Delegado --> UC06
+Delegado --> UC09
+Delegado --> UC10
+Delegado --> UC11
+
+' --- Associações do Comitê Olímpico ---
+Comite --> UC09
+Comite --> UC10
+Comite --> UC11
+Comite --> UC12
+
+' --- Relacionamentos Include ---
+UC07 ..> UC13 : <<include>>
+UC06 ..> UC14 : <<include>>
+UC08 ..> UC15 : <<include>>
+UC06 ..> UC16 : <<include>>
+UC08 ..> UC16 : <<include>>
+UC04 ..> UC02 : <<include>>
+
+' --- Relacionamentos Extend ---
+UC06 ..> UC17 : <<extend>>
+UC08 ..> UC18 : <<extend>>
+UC09 ..> UC12 : <<extend>>
+
+' --- Atores Secundários ---
+SisNotif <-- UC17
+SisNotif <-- UC18
+SisAuth <-- UC16
+
+' --- Notas com Regras de Negócio ---
+note right of UC13
+  <b>RN3:</b> Um local só pode
+  abrigar uma competição
+  por vez. Verificar
+  conflitos de horário.
+end note
+
+note right of UC14
+  <b>RN2:</b> Um atleta só pode
+  representar um país
+  por modalidade.
+end note
+
+note right of UC15
+  <b>RN4:</b> Após a competição,
+  determina os classificados
+  em 1º, 2º e 3º lugares
+  (Ouro, Prata, Bronze).
+end note
+
+note bottom of UC16
+  <b>Segurança:</b> Todas as operações
+  de escrita exigem autenticação
+  via OAuth 2.0 / JWT.
+end note
+
+note right of UC12
+  <b>RN5:</b> O sistema deve gerar
+  relatórios exportáveis
+  de medalhas por país.
+end note
+
+@enduml
