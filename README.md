@@ -74,7 +74,7 @@ O Sistema de Gestão das Olimpíadas (SGO) é uma aplicação desenvolvida para 
 <img width="800px" src="https://github.com/Dolabelaa/sistema-gestao-olimpiadas/blob/main/imagens/Diagrama-de-componentes.png"/>
 
 <h3>Diagrama de Implantação</h3>
-<img width="800px" src="https://github.com/Dolabelaa/sistema-gestao-olimpiadas/blob/main/imagens/Diagrama-de-implementacao.png"/>
+<img width="800px" src="https://github.com/Dolabelaa/sistema-gestao-olimpiadas/blob/main/imagens/Diagrama-de-implantacao.png"/>
 
 ---
 
@@ -89,7 +89,7 @@ PROJETO-DE-SOFTWARE/
 │   ├── Diagrama-casos-de-uso.png
 │   ├── Diagrama-de-classes.png
 │   ├── Diagrama-de-componentes.png
-│   ├── Diagrama-de-implementacao.png
+│   ├── Diagrama-de-implantacao.png
 │   └── Diagrama-de-pacotes.png
 │
 └── codigos/
